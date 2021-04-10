@@ -3,5 +3,9 @@ __all__ = [
     'helpers',
     'spikenet',
     'spikinglinear',
-    'databasednormalizer'
+    'databasednormalizer',
+    'convnet',
+    'spikingconv2D',
+    'spikeconvnet',
+    'spikingpool2D'
 ]

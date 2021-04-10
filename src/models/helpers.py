@@ -75,6 +75,74 @@ def test_snn(model, device, test_spyke_gen):
             i, test_loss, correct[i], len(test_spyke_gen),
             100. * correct[i] / len(test_spyke_gen)))
 
+
+def train_cnn(model, device, train_loader, optimizer, epoch):
+    model.train()
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+
+        target_onehot = torch.zeros((target.shape[0],10),dtype=torch.float32)
+        for i in range(target.shape[0]):
+            target_onehot[i,target[i]] = torch.as_tensor(1,dtype=torch.float32)            
+        target_onehot = target_onehot.to(device)      
+
+        optimizer.zero_grad()
+        output = model(data)
+        loss = F.mse_loss(output, target_onehot,reduction='sum') * 0.5 * (1 / output.shape[0])
+        loss.backward()
+        optimizer.step()    
+    print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        epoch, batch_idx * len(data), len(train_loader.dataset),
+        100. * batch_idx / len(train_loader), loss.item()))        
+
+def test_cnn(model, device, test_loader):
+    model.eval()
+    test_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+
+            target_onehot = torch.zeros((target.shape[0],10),dtype=torch.float32)
+            for i in range(target.shape[0]):
+                target_onehot[i,target[i]] = torch.as_tensor(1,dtype=torch.float32)            
+            target_onehot = target_onehot.to(device)
+
+            output = model(data)
+            test_loss += F.mse_loss(output, target_onehot, reduction='sum').item() * 0.5 * (1 / output.shape[0])  # sum up batch loss
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            correct += pred.eq(target.view_as(pred)).sum().item()
+
+    test_loss /= len(test_loader.dataset)
+
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
+
+
+def test_cnn_spiking(model, device, test_spyke_gen, batch_size):
+    model.eval()
+    test_loss = 0
+    batch_index = 0
+    correct = np.zeros(test_spyke_gen.simulation_steps)
+    with torch.no_grad():
+        for dat_orig, data, target in test_spyke_gen:
+            data, target = data.to(device), target.to(device)
+            output = model(data)
+            pred = output                                 
+            # Sum up the correct predictions in each of the simulation steps
+            correct += pred.eq(target).sum(1).cpu().numpy()
+            print('Progress: {}/{}'.format(batch_index * batch_size,len(test_spyke_gen)))
+            print('worst corrects so far: {}/{}'.format(correct[0],batch_size * (batch_index + 1)))
+            print('best corrects so far: {}/{}'.format(correct[-1],batch_size* (batch_index + 1)))
+            
+            batch_index += 1
+    test_loss /= len(test_spyke_gen)
+    for i in range(test_spyke_gen.simulation_steps):
+        print('\nSim step: {}, Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            i, test_loss, correct[i], len(test_spyke_gen),
+            100. * correct[i] / len(test_spyke_gen)))
+
 def prep_dataset():
     BATCH_SIZE = 64
 

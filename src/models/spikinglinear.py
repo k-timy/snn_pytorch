@@ -26,9 +26,9 @@ class SpikingLinear(nn.Module):
         self.out_features = linear_nn.out_features        
         self.sim_params = {
             "batch_size" : None,
-            "dt" : torch.as_tensor(0.1,dtype=torch.float32),
-            "threshold" : torch.as_tensor(1,dtype=torch.float32),
-            "ref_period" : torch.as_tensor(0,dtype=torch.float32),
+            "dt" : torch.as_tensor(0.1,dtype=torch.float32).to(device),
+            "threshold" : torch.as_tensor(1,dtype=torch.float32).to(device),
+            "ref_period" : torch.as_tensor(0,dtype=torch.float32).to(device),
             "dtype" : torch.float32, # TODO get this from input layer          
         }
         self.device = device
